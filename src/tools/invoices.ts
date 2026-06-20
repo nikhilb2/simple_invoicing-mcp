@@ -64,7 +64,7 @@ export function registerInvoiceTools(server: McpServer) {
 
   server.tool(
     'create_invoice',
-    'Create a new sales or purchase invoice. Requires a ledger_id and at least one item with a product_id.',
+    'Create a new sales or purchase invoice. IMPORTANT: ledger_id and product_id are numeric database IDs — you must call list_ledgers (search by name) and list_products (search by name) first to get the correct IDs before calling this tool. items must be a non-empty array.',
     InvoiceCreate.shape,
     async (invoiceData) => {
       const { data } = await client.post('/api/invoices/', invoiceData);

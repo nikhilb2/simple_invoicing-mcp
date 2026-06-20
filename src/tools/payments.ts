@@ -58,7 +58,7 @@ export function registerPaymentTools(server: McpServer) {
 
   server.tool(
     'create_payment',
-    'Record a new payment. voucher_type and amount are required. Use "receipt" when customer pays you, "payment" when you pay a supplier.',
+    'Record a new payment. voucher_type and amount are required. Use "receipt" when customer pays you, "payment" when you pay a supplier. IMPORTANT: ledger_id is a numeric database ID — call list_ledgers first to resolve the ledger by name.',
     PaymentCreate.shape,
     async (paymentData) => {
       const { data } = await client.post('/api/payments/', paymentData);

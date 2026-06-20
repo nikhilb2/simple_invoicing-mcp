@@ -50,7 +50,7 @@ export function registerProductTools(server: McpServer) {
 
   server.tool(
     'create_product',
-    'Create a new product. SKU, name, and price are required.',
+    'Create a new product. sku, name, and price are required.',
     ProductCreate.shape,
     async (productData) => {
       const { data } = await client.post('/api/products/', productData);
