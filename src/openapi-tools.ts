@@ -93,13 +93,13 @@ const EXTRA_HINTS: Record<string, string> = {
   'GET /api/products/':
     'Use the search param to find a product by name or SKU. Returns id, name, price, gst_rate. Use the id in create_invoice items[].product_id.',
   'POST /api/invoices/':
-    'IMPORTANT: ledger_id and items[].product_id are numeric DB IDs. ALWAYS call list_ledgers (search by customer name) and list_products (search by product name) first to get the correct IDs. items must be a non-empty array. Use unit_price to override the stored product price.',
+    'IMPORTANT: Pass fields FLAT at the top level — do NOT wrap in a "data" key or any other wrapper. Required: ledger_id (integer, from list_ledgers), items (array, min 1 element). Each item requires product_id (integer, from list_products) and quantity (number). To override price use unit_price (NOT "rate"). Invoice type field is voucher_type (NOT "invoice_type"), values: "sales" or "purchase". ALWAYS call list_ledgers and list_products first to get numeric IDs.',
   'PUT /api/invoices/{invoice_id}':
-    'IMPORTANT: Replaces all items — include ALL line items, not just changes. Get the invoice first with get_invoice to retrieve existing items.',
+    'IMPORTANT: Pass fields FLAT — no wrapper. Replaces all items — include ALL line items, not just changes. Get the invoice first with get_invoice to retrieve existing items.',
   'POST /api/payments/':
-    'IMPORTANT: ledger_id is a numeric DB ID. Call list_ledgers (search by name) first to resolve. Use voucher_type="receipt" when customer pays you, "payment" when you pay a supplier. To allocate against specific invoices use invoice_allocations[].',
+    'IMPORTANT: Pass fields FLAT — no wrapper. ledger_id is a numeric DB ID. Call list_ledgers (search by name) first to resolve. Use voucher_type="receipt" when customer pays you, "payment" when you pay a supplier. To allocate against specific invoices use invoice_allocations[].',
   'POST /api/credit-notes/':
-    'IMPORTANT: ledger_id and invoice_ids are numeric DB IDs. Call list_invoices first to find the invoice. Get the invoice details to find invoice_item_id values needed in items[].',
+    'IMPORTANT: Pass fields FLAT — no wrapper. ledger_id and invoice_ids are numeric DB IDs. Call list_invoices first to find the invoice. Get the invoice details to find invoice_item_id values needed in items[].',
 };
 
 // --- $ref resolver ----------------------------------------------------------
@@ -283,7 +283,16 @@ export async function registerOpenAPITools(server: McpServer): Promise<void> {
         .filter(p => p.in === 'query')
         .map(p => p.name);
 
-      server.tool(toolName, description, inputShape, async (args: Record<string, unknown>) => {
+      server.tool(toolName, description, inputShape, async (rawArgs: Record<string, unknown>) => {
+        // Defensively unwrap if ChatGPT wraps args in a "data" key
+        const args: Record<string, unknown> =
+          rawArgs.data && typeof rawArgs.data === 'object' && !Array.isArray(rawArgs.data)
+            ? (rawArgs.data as Record<string, unknown>)
+            : rawArgs;
+
+        // Normalise common LLM field name mistakes
+        if (args.rate !== undefined && args.unit_price === undefined) args.unit_price = args.rate;
+        if (args.invoice_type !== undefined && args.voucher_type === undefined) args.voucher_type = args.invoice_type;
         // Build URL
         let url = path as string;
         for (const p of pathParamNames) {
