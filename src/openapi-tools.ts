@@ -88,12 +88,18 @@ const ALLOWED_PATHS = new Set([
 
 // Extra guidance injected into tool descriptions for LLM orientation
 const EXTRA_HINTS: Record<string, string> = {
+  'GET /api/ledgers/':
+    'Use the search param to find a ledger by customer/supplier name. Returns id, name, address, gst, phone. Use the id in create_invoice (ledger_id) or create_payment (ledger_id).',
+  'GET /api/products/':
+    'Use the search param to find a product by name or SKU. Returns id, name, price, gst_rate. Use the id in create_invoice items[].product_id.',
   'POST /api/invoices/':
-    'IMPORTANT: ledger_id and items[].product_id are numeric DB IDs. Call list_invoices or list_ledgers (with search) first to resolve names to IDs. items must be a non-empty array.',
+    'IMPORTANT: ledger_id and items[].product_id are numeric DB IDs. ALWAYS call list_ledgers (search by customer name) and list_products (search by product name) first to get the correct IDs. items must be a non-empty array. Use unit_price to override the stored product price.',
+  'PUT /api/invoices/{invoice_id}':
+    'IMPORTANT: Replaces all items — include ALL line items, not just changes. Get the invoice first with get_invoice to retrieve existing items.',
   'POST /api/payments/':
-    'IMPORTANT: ledger_id is a numeric DB ID. Call list_ledgers (with search param) first to resolve by name. Use voucher_type="receipt" when customer pays you, "payment" when you pay supplier.',
+    'IMPORTANT: ledger_id is a numeric DB ID. Call list_ledgers (search by name) first to resolve. Use voucher_type="receipt" when customer pays you, "payment" when you pay a supplier. To allocate against specific invoices use invoice_allocations[].',
   'POST /api/credit-notes/':
-    'IMPORTANT: invoice_id is a numeric DB ID. Call list_invoices first to resolve by invoice number.',
+    'IMPORTANT: ledger_id and invoice_ids are numeric DB IDs. Call list_invoices first to find the invoice. Get the invoice details to find invoice_item_id values needed in items[].',
 };
 
 // --- $ref resolver ----------------------------------------------------------
