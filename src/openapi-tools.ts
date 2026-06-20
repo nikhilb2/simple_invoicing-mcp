@@ -316,6 +316,7 @@ export async function registerOpenAPITools(server: McpServer): Promise<void> {
           const e = err as { response?: { status: number; data: unknown } };
           const status = e.response?.status;
           const detail = e.response?.data;
+          console.error(`[MCP ERROR] ${method.toUpperCase()} ${url} → ${status}: ${JSON.stringify(detail)}`);
           return {
             content: [{
               type: 'text' as const,

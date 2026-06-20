@@ -40,6 +40,13 @@ async function verifyApiKey(key: string): Promise<boolean> {
 // --- MCP endpoint ----------------------------------------------------------
 
 app.post('/mcp', async (req: Request, res: Response) => {
+  // Log every incoming call for debugging
+  const body = req.body;
+  if (body?.method === 'tools/call') {
+    console.log(`[MCP CALL] tool=${body?.params?.name} args=${JSON.stringify(body?.params?.arguments)}`);
+  } else if (body?.method) {
+    console.log(`[MCP] method=${body.method}`);
+  }
   const queryKey = req.query.api_key as string | undefined;
   const headerKey = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
   const key = queryKey || headerKey;
