@@ -30,7 +30,36 @@ function createServer(): McpServer {
 }
 
 // MCP endpoint — stateless: each request creates a fresh server + transport
+async function verifyApiKey(key: string): Promise<boolean> {
+  try {
+    const { default: axios } = await import('axios');
+    const baseURL = process.env.INVOICING_BASE_URL;
+    await axios.get(`${baseURL}/api/api-keys/verify`, {
+      headers: { Authorization: `Bearer ${key}` },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 app.post('/mcp', async (req: Request, res: Response) => {
+  // Auth: accept api_key query param or Authorization Bearer header
+  const queryKey = req.query.api_key as string | undefined;
+  const headerKey = (req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  const key = queryKey || headerKey;
+
+  if (!key) {
+    res.status(401).json({ error: 'Missing api_key' });
+    return;
+  }
+
+  const valid = await verifyApiKey(key);
+  if (!valid) {
+    res.status(401).json({ error: 'Invalid or expired api_key' });
+    return;
+  }
+
   const server = createServer();
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless mode
